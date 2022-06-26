@@ -45,7 +45,6 @@ public class ServerPlayerEntityMixin implements ServerPlayerEntityExtension {
 
     @Inject(method = "onDeath", at = @At("TAIL"))
     public void onDeath(DamageSource damageSource, CallbackInfo ci) {
-        System.out.printf("DIEEEEE (%d)\n", getLives(this));
         int lives = getLives(this);
         if (lives > 0) {
             setLives(this, lives - 1);
@@ -54,6 +53,7 @@ public class ServerPlayerEntityMixin implements ServerPlayerEntityExtension {
             return;
         }
 
+        HardcoreHabitat.seasonRunning = false;
         ((ServerPlayerEntity) (Object) this).changeGameMode(GameMode.SPECTATOR);
         ((PlayerEntity) (Object) this).sendMessage(Text.of("Welp,, thats all for this season!"), true);
     }
