@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "hardcore-habitat",
+  "version": "${version}",
+  "name": "Hardcore Habitat",
+  "description": "",
+  "authors": [
+    "ConnorSlade"
+  ],
+  "contact": {
+    "website": "https://connorcode.com"
+  },
+  "license": "MIT",
+  "icon": "assets/hardcore-habitat/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.connorcode.hardcorehabitat.HardcoreHabitat"
+    ]
+  },
+  "mixins": [
+    "hardcore-habitat.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.14.8",
+    "fabric": "*",
+    "minecraft": "1.19"
+  }
+}
