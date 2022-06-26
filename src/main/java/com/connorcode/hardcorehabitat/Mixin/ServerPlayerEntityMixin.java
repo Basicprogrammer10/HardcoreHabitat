@@ -1,11 +1,14 @@
 package com.connorcode.hardcorehabitat.Mixin;
 
 import com.connorcode.hardcorehabitat.HardcoreHabitat;
+import com.connorcode.hardcorehabitat.Runner;
 import com.connorcode.hardcorehabitat.ServerPlayerEntityExtension;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.network.packet.s2c.play.SubtitleS2CPacket;
+import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
+import net.minecraft.server.PlayerManager;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.world.GameMode;
@@ -14,6 +17,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.ArrayList;
+import java.util.Objects;
 import java.util.UUID;
 
 @Mixin(ServerPlayerEntity.class)
@@ -45,16 +50,58 @@ public class ServerPlayerEntityMixin implements ServerPlayerEntityExtension {
 
     @Inject(method = "onDeath", at = @At("TAIL"))
     public void onDeath(DamageSource damageSource, CallbackInfo ci) {
+        ServerPlayerEntity self = ((ServerPlayerEntity) (Object) this);
         int lives = getLives(this);
         if (lives > 0) {
-            setLives(this, lives - 1);
-            ((PlayerEntity) (Object) this).sendMessage(Text.of(String.format("You now have %d lives!", lives - 1)),
-                    true);
+            lives--;
+            setLives(this, lives);
+            if (!HardcoreHabitat.playerRespawnMessageQueue.containsKey(self.getUuid()))
+                HardcoreHabitat.playerRespawnMessageQueue.put(self.getUuid(), new ArrayList<>());
+
+            int finalLives = lives;
+            HardcoreHabitat.playerRespawnMessageQueue.get(self.getUuid())
+                    .add(() -> self.sendMessage(
+                            Text.of(String.format("You now have %d live%s!", finalLives, finalLives < 2 ? "" : "s")),
+                            true));
             return;
         }
 
         HardcoreHabitat.seasonRunning = false;
-        ((ServerPlayerEntity) (Object) this).changeGameMode(GameMode.SPECTATOR);
-        ((PlayerEntity) (Object) this).sendMessage(Text.of("Welp,, thats all for this season!"), true);
+        for (ServerPlayerEntity i : self.server.getPlayerManager()
+                .getPlayerList()) {
+            i.changeGameMode(GameMode.SPECTATOR);
+            if (i != self) i.networkHandler.sendPacket(new TitleS2CPacket(Text.of("Season Over")));
+        }
+        HardcoreHabitat.playerRespawnMessageQueue.get(self.getUuid())
+                .add(() -> self.networkHandler.sendPacket(new TitleS2CPacket(Text.of("Season Over"))));
+    }
+
+
+    @Inject(method = "onSpawn", at = @At("TAIL"))
+    public void onSpawn(CallbackInfo ci) {
+        ServerPlayerEntity self = ((ServerPlayerEntity) (Object) this);
+
+        // If player is new, Send a welcome message
+        PlayerManager playerManager = Objects.requireNonNull(self.getServer())
+                .getPlayerManager();
+        if (HardcoreHabitat.seasonRunning && playerManager.loadPlayerData(
+                self) == null && !HardcoreHabitat.joinedPlayersCache.contains(self.getUuid())) {
+            self.networkHandler.sendPacket(new TitleS2CPacket(Text.of(null)));
+            self.networkHandler.sendPacket(new SubtitleS2CPacket(Text.of("Welcome to JSC-Hardcore!")));
+            HardcoreHabitat.joinedPlayersCache.add(self.getUuid());
+        }
+
+        // If player has respawn queue items run them
+        if (HardcoreHabitat.playerRespawnMessageQueue.containsKey(self.getUuid())) {
+            ArrayList<Runner> toRun = HardcoreHabitat.playerRespawnMessageQueue.get(self.getUuid());
+            for (Runner i : toRun) i.run();
+            toRun.clear();
+        }
+
+        // If the season is over and the player is in survival mode, put them in spectator
+        if (HardcoreHabitat.seasonRunning || !self.interactionManager.isSurvivalLike()) return;
+        self.networkHandler.sendPacket(new TitleS2CPacket(Text.of(null)));
+        self.networkHandler.sendPacket(new SubtitleS2CPacket(Text.of("The season has ended")));
+        self.changeGameMode(GameMode.SPECTATOR);
     }
 }
