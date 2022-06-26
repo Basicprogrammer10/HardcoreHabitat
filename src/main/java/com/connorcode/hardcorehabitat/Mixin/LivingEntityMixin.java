@@ -1,6 +1,6 @@
 package com.connorcode.hardcorehabitat.Mixin;
 
-import com.connorcode.hardcorehabitat.ServerPlayerEntityExtension;
+import com.connorcode.hardcorehabitat.Misc.ServerPlayerEntityExtension;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;

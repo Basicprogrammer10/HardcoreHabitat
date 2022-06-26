@@ -1,8 +1,9 @@
 package com.connorcode.hardcorehabitat.Mixin;
 
 import com.connorcode.hardcorehabitat.HardcoreHabitat;
-import com.connorcode.hardcorehabitat.Runner;
-import com.connorcode.hardcorehabitat.ServerPlayerEntityExtension;
+import com.connorcode.hardcorehabitat.Misc.Runner;
+import com.connorcode.hardcorehabitat.Misc.ServerPlayerEntityExtension;
+import com.connorcode.hardcorehabitat.Util;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.nbt.NbtCompound;
@@ -13,6 +14,7 @@ import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.world.GameMode;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -22,7 +24,10 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Mixin(ServerPlayerEntity.class)
-public class ServerPlayerEntityMixin implements ServerPlayerEntityExtension {
+public abstract class ServerPlayerEntityMixin implements ServerPlayerEntityExtension {
+    @Shadow
+    public abstract void sendMessage(Text message);
+
     @Override
     public int getLives() {
         return getLives(this);
@@ -55,13 +60,14 @@ public class ServerPlayerEntityMixin implements ServerPlayerEntityExtension {
         if (lives > 0) {
             lives--;
             setLives(this, lives);
+            System.out.printf("LIVES: %d\n", lives);
             if (!HardcoreHabitat.playerRespawnMessageQueue.containsKey(self.getUuid()))
                 HardcoreHabitat.playerRespawnMessageQueue.put(self.getUuid(), new ArrayList<>());
 
             int finalLives = lives;
             HardcoreHabitat.playerRespawnMessageQueue.get(self.getUuid())
                     .add(() -> self.sendMessage(
-                            Text.of(String.format("You now have %d live%s!", finalLives, finalLives < 2 ? "" : "s")),
+                            Text.of(Util.genLiveCountText(finalLives)),
                             true));
             return;
         }
@@ -70,10 +76,11 @@ public class ServerPlayerEntityMixin implements ServerPlayerEntityExtension {
         for (ServerPlayerEntity i : self.server.getPlayerManager()
                 .getPlayerList()) {
             i.changeGameMode(GameMode.SPECTATOR);
-            if (i != self) i.networkHandler.sendPacket(new TitleS2CPacket(Text.of("Season Over")));
+            if (i != self) i.networkHandler.sendPacket(new TitleS2CPacket(Text.of("§cSeason Over")));
+            i.sendMessage(Text.of("§cSeason over"));
         }
         HardcoreHabitat.playerRespawnMessageQueue.get(self.getUuid())
-                .add(() -> self.networkHandler.sendPacket(new TitleS2CPacket(Text.of("Season Over"))));
+                .add(() -> self.networkHandler.sendPacket(new TitleS2CPacket(Text.of("§cSeason Over"))));
     }
 
 
@@ -101,7 +108,7 @@ public class ServerPlayerEntityMixin implements ServerPlayerEntityExtension {
         // If the season is over and the player is in survival mode, put them in spectator
         if (HardcoreHabitat.seasonRunning || !self.interactionManager.isSurvivalLike()) return;
         self.networkHandler.sendPacket(new TitleS2CPacket(Text.of(null)));
-        self.networkHandler.sendPacket(new SubtitleS2CPacket(Text.of("The season has ended")));
+        self.networkHandler.sendPacket(new SubtitleS2CPacket(Text.of("§cThe season has ended")));
         self.changeGameMode(GameMode.SPECTATOR);
     }
 }

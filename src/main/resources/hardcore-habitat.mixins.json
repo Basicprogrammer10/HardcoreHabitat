@@ -4,6 +4,7 @@
   "package": "com.connorcode.hardcorehabitat.Mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
+    "DamageTrackerMixin",
     "LivingEntityMixin",
     "MinecraftDedicatedServerMixin",
     "MinecraftServerMixin",

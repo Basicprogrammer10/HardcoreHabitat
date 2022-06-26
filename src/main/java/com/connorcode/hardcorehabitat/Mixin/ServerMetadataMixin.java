@@ -13,6 +13,6 @@ public class ServerMetadataMixin {
     @Inject(method = "getDescription", at = @At("TAIL"), cancellable = true)
     public void getServerMotd(CallbackInfoReturnable<Text> cir) {
         cir.setReturnValue(
-                Text.of(String.format("JSC-Hardcore: %s", HardcoreHabitat.seasonRunning ? "RUNNING" : "ENDED")));
+                Text.of(String.format("§7JSC-Hardcore: %s", HardcoreHabitat.seasonRunning ? "§aRUNNING" : "§cENDED")));
     }
 }
