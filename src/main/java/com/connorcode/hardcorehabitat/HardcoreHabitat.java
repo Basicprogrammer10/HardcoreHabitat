@@ -1,7 +1,9 @@
 package com.connorcode.hardcorehabitat;
 
+import com.connorcode.hardcorehabitat.Commands.Commands;
 import com.connorcode.hardcorehabitat.Misc.Runner;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.server.dedicated.ServerPropertiesHandler;
 
 import java.util.ArrayList;
@@ -18,5 +20,6 @@ public class HardcoreHabitat implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        CommandRegistrationCallback.EVENT.register(Commands::register);
     }
 }

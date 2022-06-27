@@ -20,7 +20,11 @@ import java.io.IOException;
 @Mixin(MinecraftDedicatedServer.class)
 public class MinecraftDedicatedServerMixin {
     @Inject(method = "<init>", at = @At("TAIL"))
-    public void MinecraftDedicatedServer(Thread serverThread, LevelStorage.Session session, ResourcePackManager dataPackManager, SaveLoader saveLoader, ServerPropertiesLoader propertiesLoader, DataFixer dataFixer, ApiServices apiServices, WorldGenerationProgressListenerFactory worldGenerationProgressListenerFactory, CallbackInfo ci) throws IOException {
+    public void MinecraftDedicatedServer(Thread serverThread, LevelStorage.Session session,
+                                         ResourcePackManager dataPackManager, SaveLoader saveLoader,
+                                         ServerPropertiesLoader propertiesLoader, DataFixer dataFixer,
+                                         ApiServices apiServices,
+                                         WorldGenerationProgressListenerFactory worldGenerationProgressListenerFactory, CallbackInfo ci) throws IOException {
         HardcoreHabitat.properties = propertiesLoader.getPropertiesHandler();
         HardcoreHabitat.seasonRunning = HardcoreStateLoader.load();
     }
