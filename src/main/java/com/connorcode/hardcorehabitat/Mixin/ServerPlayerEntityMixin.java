@@ -36,12 +36,10 @@ public abstract class ServerPlayerEntityMixin implements ServerPlayerEntityExten
 
     private int getLives(ServerPlayerEntityMixin e) {
         UUID uuid = ((ServerPlayerEntity) (Object) e).getUuid();
-        System.out.printf("GETLIVES: %s\n", uuid.toString());
         return HardcoreHabitat.lives.get(uuid);
     }
 
     private void setLives(ServerPlayerEntityMixin e, int lives) {
-        System.out.printf("SETLIVES: %s\n", (((ServerPlayerEntity) (Object) e).getUuid()).toString());
         HardcoreHabitat.lives.put(((ServerPlayerEntity) (Object) e).getUuid(), lives);
     }
 
@@ -70,8 +68,8 @@ public abstract class ServerPlayerEntityMixin implements ServerPlayerEntityExten
             System.out.println(HardcoreHabitat.lives);
 
             for (ServerPlayerEntity i : self.server.getPlayerManager().getPlayerList())
-                i.networkHandler.sendPacket(new PlayerListS2CPacket(PlayerListS2CPacket.Action.UPDATE_DISPLAY_NAME,
-                        self));
+                i.networkHandler.sendPacket(
+                        new PlayerListS2CPacket(PlayerListS2CPacket.Action.UPDATE_DISPLAY_NAME, self));
 
             int finalLives = lives;
             HardcoreHabitat.playerRespawnMessageQueue.get(self.getUuid()).add(() -> {
@@ -87,7 +85,8 @@ public abstract class ServerPlayerEntityMixin implements ServerPlayerEntityExten
             if (i != self) i.networkHandler.sendPacket(new TitleS2CPacket(Text.of("§cSeason Over")));
             i.sendMessage(Text.of("§cSeason over"));
         }
-        HardcoreHabitat.playerRespawnMessageQueue.get(self.getUuid()).add(() -> self.networkHandler.sendPacket(new TitleS2CPacket(Text.of("§cSeason Over"))));
+        HardcoreHabitat.playerRespawnMessageQueue.get(self.getUuid())
+                .add(() -> self.networkHandler.sendPacket(new TitleS2CPacket(Text.of("§cSeason Over"))));
     }
 
 
@@ -95,12 +94,13 @@ public abstract class ServerPlayerEntityMixin implements ServerPlayerEntityExten
     public void onSpawn(CallbackInfo ci) {
         ServerPlayerEntity self = ((ServerPlayerEntity) (Object) this);
 
-        self.networkHandler.sendPacket(new PlayerListHeaderS2CPacket(Text.of("\n  §nJSC-Hardcore§r  \n"),
-                Text.of("\n")));
+        self.networkHandler.sendPacket(
+                new PlayerListHeaderS2CPacket(Text.of("\n  §nJSC-Hardcore§r  \n"), Text.of("\n")));
 
         // If player is new, Send a welcome message
         PlayerManager playerManager = Objects.requireNonNull(self.getServer()).getPlayerManager();
-        if (HardcoreHabitat.seasonRunning && playerManager.loadPlayerData(self) == null && !HardcoreHabitat.joinedPlayersCache.contains(self.getUuid())) {
+        if (HardcoreHabitat.seasonRunning && playerManager.loadPlayerData(
+                self) == null && !HardcoreHabitat.joinedPlayersCache.contains(self.getUuid())) {
             self.networkHandler.sendPacket(new TitleS2CPacket(Text.of(null)));
             self.networkHandler.sendPacket(new SubtitleS2CPacket(Text.of("Welcome to JSC-Hardcore!")));
             HardcoreHabitat.joinedPlayersCache.add(self.getUuid());

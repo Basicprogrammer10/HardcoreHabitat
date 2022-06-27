@@ -42,14 +42,11 @@ public class HardcoreStateLoader {
 
     private static File getFile() {
         // Get path to /world/hardcore
-        Path worldFolder = FabricLoader.getInstance()
-                .getGameDir()
-                .resolve(HardcoreHabitat.properties.levelName);
+        Path worldFolder = FabricLoader.getInstance().getGameDir().resolve(HardcoreHabitat.properties.levelName);
         return new File(worldFolder + File.separator + "hardcore");
     }
 
     private static void invalidFile() {
-        LogUtils.getLogger()
-                .error("Hardcore file is invalid, assuming season is running");
+        LogUtils.getLogger().error("Hardcore file is invalid, assuming season is running");
     }
 }

@@ -22,7 +22,6 @@ public class EntryMixin {
     public void getDisplayName(CallbackInfoReturnable<Text> cir) {
         if (!HardcoreHabitat.lives.containsKey(profile.getId())) HardcoreHabitat.lives.put(profile.getId(), 7);
         int lives = HardcoreHabitat.lives.get(profile.getId());
-        cir.setReturnValue(Text.of(String.format("%s%s [%d] ",
-                Util.colorForLives(lives), profile.getName(), lives)));
+        cir.setReturnValue(Text.of(String.format("%s%s [%d] ", Util.colorForLives(lives), profile.getName(), lives)));
     }
 }

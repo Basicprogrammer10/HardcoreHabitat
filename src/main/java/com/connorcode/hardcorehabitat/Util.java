@@ -2,8 +2,8 @@ package com.connorcode.hardcorehabitat;
 
 public class Util {
     public static String genLiveCountText(int lives) {
-        return String.format("%sYou have %s %s left", colorForLives(lives), lives == 0 ? "no" : lives, lives == 1 ?
-                "life" : "lives");
+        return String.format("%sYou have %s %s left", colorForLives(lives), lives == 0 ? "no" : lives,
+                lives == 1 ? "life" : "lives");
     }
 
     public static String colorForLives(int lives) {
