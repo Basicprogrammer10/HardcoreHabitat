@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_17",
   "mixins": [
     "DamageTrackerMixin",
+    "DragonEggBlockMixin",
     "EntryMixin",
     "LivingEntityMixin",
     "MinecraftDedicatedServerMixin",

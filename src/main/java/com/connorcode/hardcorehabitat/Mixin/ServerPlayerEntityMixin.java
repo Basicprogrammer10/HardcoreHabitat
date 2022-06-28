@@ -46,11 +46,15 @@ public abstract class ServerPlayerEntityMixin implements ServerPlayerEntityExten
     @Inject(method = "writeCustomDataToNbt", at = @At("RETURN"))
     public void writeCustomDataToNbt(NbtCompound nbt, CallbackInfo ci) {
         nbt.putInt("Lives", getLives(this));
+
+        ServerPlayerEntity self = ((ServerPlayerEntity) (Object) this);
+        if (self.isDisconnected()) HardcoreHabitat.lives.remove(self.getUuid());
     }
 
     @Inject(method = "readCustomDataFromNbt", at = @At("RETURN"))
     public void readCustomDataFromNbt(NbtCompound nbt, CallbackInfo ci) {
         if (nbt.contains("Lives")) setLives(this, nbt.getInt("Lives"));
+        else setLives(this, 7);
     }
 
     @Inject(method = "onDeath", at = @At("HEAD"))
