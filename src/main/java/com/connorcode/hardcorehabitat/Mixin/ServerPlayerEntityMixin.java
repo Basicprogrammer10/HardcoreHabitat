@@ -1,14 +1,16 @@
 package com.connorcode.hardcorehabitat.Mixin;
 
 import com.connorcode.hardcorehabitat.HardcoreHabitat;
-import com.connorcode.hardcorehabitat.Misc.PlayerManagerExtension;
 import com.connorcode.hardcorehabitat.Misc.Runner;
 import com.connorcode.hardcorehabitat.Misc.ServerPlayerEntityExtension;
 import com.connorcode.hardcorehabitat.Util;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.packet.s2c.play.*;
+import net.minecraft.network.packet.s2c.play.PlayerListHeaderS2CPacket;
+import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket;
+import net.minecraft.network.packet.s2c.play.SubtitleS2CPacket;
+import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.PlayerManager;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -59,6 +61,7 @@ public abstract class ServerPlayerEntityMixin implements ServerPlayerEntityExten
 
     @Inject(method = "readCustomDataFromNbt", at = @At("RETURN"))
     public void readCustomDataFromNbt(NbtCompound nbt, CallbackInfo ci) {
+        if (HardcoreHabitat.lives.containsKey(((ServerPlayerEntity) (Object) this).getUuid())) return;
         if (nbt.contains("Lives")) setLives(this, nbt.getInt("Lives"));
         else setLives(this, 7);
     }
@@ -74,10 +77,6 @@ public abstract class ServerPlayerEntityMixin implements ServerPlayerEntityExten
         if (lives > 0) {
             lives--;
             setLives(this, lives);
-            Objects.requireNonNull(self.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH))
-                    .setBaseValue(2 * (10 - lives));
-            ((PlayerManagerExtension) server.getPlayerManager()).savePlayer(self);
-
             System.out.printf("LIVES: %d\n", lives);
             System.out.println(HardcoreHabitat.lives);
 
@@ -86,10 +85,8 @@ public abstract class ServerPlayerEntityMixin implements ServerPlayerEntityExten
                         new PlayerListS2CPacket(PlayerListS2CPacket.Action.UPDATE_DISPLAY_NAME, self));
 
             int finalLives = lives;
-            HardcoreHabitat.playerRespawnMessageQueue.get(self.getUuid())
-                    .add(() -> self.sendMessage(Text.of(Util.genLiveCountText(finalLives)), true));
-            HardcoreHabitat.playerRespawnMessageQueue.get(self.getUuid()).add(() -> self.networkHandler.sendPacket(
-                    new HealthUpdateS2CPacket(2f * (10 - finalLives), 20, 5)));
+            ArrayList<Runner> playerRespawnQueue = HardcoreHabitat.playerRespawnMessageQueue.get(self.getUuid());
+            playerRespawnQueue.add(() -> self.sendMessage(Text.of(Util.genLiveCountText(finalLives)), true));
             return;
         }
 
@@ -121,10 +118,15 @@ public abstract class ServerPlayerEntityMixin implements ServerPlayerEntityExten
         PlayerManager playerManager = Objects.requireNonNull(self.getServer()).getPlayerManager();
         if (HardcoreHabitat.seasonRunning && playerManager.loadPlayerData(
                 self) == null && !HardcoreHabitat.joinedPlayersCache.contains(self.getUuid())) {
+            if (!HardcoreHabitat.lives.containsKey(self.getUuid())) HardcoreHabitat.lives.put(self.getUuid(), 7);
             self.networkHandler.sendPacket(new TitleS2CPacket(Text.of(null)));
             self.networkHandler.sendPacket(new SubtitleS2CPacket(Text.of("Welcome to JSC-Hardcore!")));
             HardcoreHabitat.joinedPlayersCache.add(self.getUuid());
         }
+
+        System.out.println(HardcoreHabitat.lives);
+        Objects.requireNonNull(self.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH))
+                .setBaseValue(2 * (10 - HardcoreHabitat.lives.get(self.getUuid())));
 
         // If player has respawn queue items run them
         if (HardcoreHabitat.playerRespawnMessageQueue.containsKey(self.getUuid())) {
@@ -132,11 +134,6 @@ public abstract class ServerPlayerEntityMixin implements ServerPlayerEntityExten
             for (Runner i : toRun) i.run();
             toRun.clear();
         }
-
-        System.out.println(HardcoreHabitat.lives);
-        int lives = HardcoreHabitat.lives.get(self.getUuid());
-        Objects.requireNonNull(self.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH))
-                .setBaseValue(2 * (10 - lives));
 
         // If the season is over and the player is in survival mode, put them in spectator
         if (HardcoreHabitat.seasonRunning || !self.interactionManager.isSurvivalLike()) return;

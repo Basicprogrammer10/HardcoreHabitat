@@ -7,7 +7,6 @@
     "DamageTrackerMixin",
     "DragonEggBlockMixin",
     "EntryMixin",
-    "LivingEntityMixin",
     "MinecraftDedicatedServerMixin",
     "MinecraftServerMixin",
     "PlayerManagerMixin",
