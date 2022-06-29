@@ -1,19 +1,20 @@
 package com.connorcode.hardcorehabitat.Mixin;
 
 import com.connorcode.hardcorehabitat.HardcoreHabitat;
+import com.connorcode.hardcorehabitat.Misc.PlayerManagerExtension;
 import com.connorcode.hardcorehabitat.Misc.Runner;
 import com.connorcode.hardcorehabitat.Misc.ServerPlayerEntityExtension;
 import com.connorcode.hardcorehabitat.Util;
+import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.network.packet.s2c.play.PlayerListHeaderS2CPacket;
-import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket;
-import net.minecraft.network.packet.s2c.play.SubtitleS2CPacket;
-import net.minecraft.network.packet.s2c.play.TitleS2CPacket;
+import net.minecraft.network.packet.s2c.play.*;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.PlayerManager;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.world.GameMode;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -21,11 +22,16 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.UUID;
 
 @Mixin(ServerPlayerEntity.class)
 public abstract class ServerPlayerEntityMixin implements ServerPlayerEntityExtension {
+    @Shadow
+    @Final
+    public MinecraftServer server;
+
     @Shadow
     public abstract void sendMessage(Text message);
 
@@ -68,6 +74,10 @@ public abstract class ServerPlayerEntityMixin implements ServerPlayerEntityExten
         if (lives > 0) {
             lives--;
             setLives(this, lives);
+            Objects.requireNonNull(self.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH))
+                    .setBaseValue(2 * (10 - lives));
+            ((PlayerManagerExtension) server.getPlayerManager()).savePlayer(self);
+
             System.out.printf("LIVES: %d\n", lives);
             System.out.println(HardcoreHabitat.lives);
 
@@ -76,10 +86,10 @@ public abstract class ServerPlayerEntityMixin implements ServerPlayerEntityExten
                         new PlayerListS2CPacket(PlayerListS2CPacket.Action.UPDATE_DISPLAY_NAME, self));
 
             int finalLives = lives;
-            HardcoreHabitat.playerRespawnMessageQueue.get(self.getUuid()).add(() -> {
-                self.sendMessage(Text.of(Util.genLiveCountText(finalLives)), true);
-                self.setHealth((float) (2 * (10 - finalLives)));
-            });
+            HardcoreHabitat.playerRespawnMessageQueue.get(self.getUuid())
+                    .add(() -> self.sendMessage(Text.of(Util.genLiveCountText(finalLives)), true));
+            HardcoreHabitat.playerRespawnMessageQueue.get(self.getUuid()).add(() -> self.networkHandler.sendPacket(
+                    new HealthUpdateS2CPacket(2f * (10 - finalLives), 20, 5)));
             return;
         }
 
@@ -98,8 +108,14 @@ public abstract class ServerPlayerEntityMixin implements ServerPlayerEntityExten
     public void onSpawn(CallbackInfo ci) {
         ServerPlayerEntity self = ((ServerPlayerEntity) (Object) this);
 
-        self.networkHandler.sendPacket(
-                new PlayerListHeaderS2CPacket(Text.of("\n  §nJSC-Hardcore§r  \n"), Text.of("\n")));
+        // Make player list header
+        int maxPlayerName = Arrays.stream(Objects.requireNonNull(self.getServer()).getPlayerNames()).map(String::length)
+                .max(Integer::compareTo).orElse(0);
+        String spaces = " ".repeat(Math.round((Math.max(0, (12 - maxPlayerName)) / 2f)));
+        for (ServerPlayerEntity i : self.getServer().getPlayerManager().getPlayerList())
+            i.networkHandler.sendPacket(
+                    new PlayerListHeaderS2CPacket(Text.of(String.format("\n%s §nJSC-Hardcore§r %s\n", spaces, spaces)),
+                            Text.empty()));
 
         // If player is new, Send a welcome message
         PlayerManager playerManager = Objects.requireNonNull(self.getServer()).getPlayerManager();
@@ -116,6 +132,11 @@ public abstract class ServerPlayerEntityMixin implements ServerPlayerEntityExten
             for (Runner i : toRun) i.run();
             toRun.clear();
         }
+
+        System.out.println(HardcoreHabitat.lives);
+        int lives = HardcoreHabitat.lives.get(self.getUuid());
+        Objects.requireNonNull(self.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH))
+                .setBaseValue(2 * (10 - lives));
 
         // If the season is over and the player is in survival mode, put them in spectator
         if (HardcoreHabitat.seasonRunning || !self.interactionManager.isSurvivalLike()) return;

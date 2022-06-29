@@ -9,6 +9,7 @@ import net.minecraft.block.DragonEggBlock;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
+import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket;
 import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -41,23 +42,27 @@ public class DragonEggBlockMixin {
         BlockState lowerBlockState = world.getBlockState(pos.down());
         if (lowerBlockState.getBlock() != Blocks.END_ROD) return;
 
-        // Explosion particle and sound
+        // Explosion particle, sound and remove block
+        world.removeBlock(pos, false);
         ((ServerWorld) world).spawnParticles(ParticleTypes.EXPLOSION, pos.getX(), pos.getY(), pos.getZ(), 50, 0.5, 0.5,
                 0.5, 1);
-        world.playSound(pos.getX(), pos.getY(), pos.getZ(), SoundEvents.ENTITY_GENERIC_EXPLODE, SoundCategory.BLOCKS,
-                25, 1, true);
+        for (PlayerEntity i : world.getPlayers())
+            ((ServerPlayerEntity) i).networkHandler.sendPacket(
+                    new PlaySoundS2CPacket(SoundEvents.ENTITY_CHICKEN_EGG, SoundCategory.BLOCKS, i.getX(), i.getEyeY(),
+                            i.getZ(), 50, 1, 0));
 
         // Reset lives of online players
         HardcoreHabitat.lives.replaceAll((i, v) -> 7);
-
-        // Save all player-data
-        HardcoreHabitat.playerManager.saveAllPlayerData();
 
         // Send message and update player list
         for (ServerPlayerEntity i : HardcoreHabitat.playerManager.getPlayerList()) {
             i.networkHandler.sendPacket(new PlayerListS2CPacket(PlayerListS2CPacket.Action.UPDATE_DISPLAY_NAME, i));
             i.sendMessage(Text.of(Util.genLiveCountText(7)), true);
+            i.setHealth(6f);
         }
+
+        // Save online player-data
+        HardcoreHabitat.playerManager.saveAllPlayerData();
 
         // Reset lives of offline players
         Path worldFolder = FabricLoader.getInstance().getGameDir().resolve(HardcoreHabitat.properties.levelName);
@@ -69,19 +74,15 @@ public class DragonEggBlockMixin {
             // Continue if player is online
             UUID fileUuid = UUID.fromString(i.getName().split("\\.")[0]);
             if (HardcoreHabitat.lives.containsKey(fileUuid)) continue;
-            System.out.println(fileUuid);
 
             // Load and edit player-data
             NbtCompound playerData = Objects.requireNonNull(NbtIo.readCompressed(i));
-            System.out.println(playerData);
             playerData.putInt("Lives", 7);
-            System.out.println(playerData);
 
             // Write new player data
-            File file = File.createTempFile(player.getUuidAsString() + "-", ".dat", playerDataDir);
-            NbtIo.writeCompressed(playerData, file);
-            net.minecraft.util.Util.backupAndReplace(new File(playerDataDir, player.getUuidAsString() + ".dat"), file,
-                    new File(playerDataDir, player.getUuidAsString() + ".dat_old"));
+            // Safe, No
+            // Easy, yes
+            NbtIo.writeCompressed(playerData, i);
         }
 
         // Cancel teleport

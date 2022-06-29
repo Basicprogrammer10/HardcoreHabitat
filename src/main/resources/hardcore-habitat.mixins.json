@@ -10,6 +10,7 @@
     "LivingEntityMixin",
     "MinecraftDedicatedServerMixin",
     "MinecraftServerMixin",
+    "PlayerManagerMixin",
     "ServerMetadataMixin",
     "ServerPlayerEntityMixin"
   ],
