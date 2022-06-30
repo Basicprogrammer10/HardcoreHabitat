@@ -6,8 +6,6 @@ import com.connorcode.hardcorehabitat.Misc.ServerPlayerEntityExtension;
 import com.connorcode.hardcorehabitat.Util;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.packet.s2c.play.PlayerListHeaderS2CPacket;
 import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket;
@@ -29,9 +27,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 @Mixin(ServerPlayerEntity.class)
 public abstract class ServerPlayerEntityMixin implements ServerPlayerEntityExtension {
+    @Shadow
+    @Final
+    private static Logger LOGGER;
+
     @Shadow
     @Final
     public MinecraftServer server;
@@ -68,10 +71,8 @@ public abstract class ServerPlayerEntityMixin implements ServerPlayerEntityExten
         else setLives(this, 7);
     }
 
-    @Inject(method = "onDeath", at = @At("TAIL"))
+    @Inject(method = "onDeath", at = @At("HEAD"))
     public void onDeath(DamageSource damageSource, CallbackInfo ci) {
-        Thread.dumpStack();
-
         ServerPlayerEntity self = ((ServerPlayerEntity) (Object) this);
         int lives = getLives(this);
 
@@ -81,8 +82,7 @@ public abstract class ServerPlayerEntityMixin implements ServerPlayerEntityExten
         if (lives > 0) {
             lives--;
             setLives(this, lives);
-            System.out.printf("LIVES: %d\n", lives);
-            System.out.println(HardcoreHabitat.lives);
+            LOGGER.info(String.format("%s is down to %d lives", self.getName().getString(), lives));
 
             for (ServerPlayerEntity i : self.server.getPlayerManager().getPlayerList())
                 i.networkHandler.sendPacket(
@@ -94,6 +94,7 @@ public abstract class ServerPlayerEntityMixin implements ServerPlayerEntityExten
             return;
         }
 
+        LOGGER.info("The season has ended");
         HardcoreHabitat.seasonRunning = false;
         for (ServerPlayerEntity i : self.server.getPlayerManager().getPlayerList()) {
             i.changeGameMode(GameMode.SPECTATOR);
