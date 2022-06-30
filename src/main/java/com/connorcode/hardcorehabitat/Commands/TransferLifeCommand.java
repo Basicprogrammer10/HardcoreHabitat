@@ -3,6 +3,7 @@ package com.connorcode.hardcorehabitat.Commands;
 import com.connorcode.hardcorehabitat.HardcoreHabitat;
 import com.connorcode.hardcorehabitat.Util;
 import com.mojang.brigadier.context.CommandContext;
+import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.command.ServerCommandSource;
@@ -52,6 +53,12 @@ public class TransferLifeCommand {
         transferPlayerLives++;
         HardcoreHabitat.lives.put(thisPlayer.getUuid(), thisPlayerLives);
         HardcoreHabitat.lives.put(transferPlayer.getUuid(), transferPlayerLives);
+
+        // Update max health
+        Objects.requireNonNull(thisPlayer.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH))
+                .setBaseValue(2 * (10 - thisPlayerLives));
+        Objects.requireNonNull(transferPlayer.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH))
+                .setBaseValue(2 * (10 - transferPlayerLives));
 
         // Send messages and update player list
         thisPlayer.sendMessage(

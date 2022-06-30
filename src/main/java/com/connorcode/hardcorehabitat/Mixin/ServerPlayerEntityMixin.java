@@ -6,6 +6,8 @@ import com.connorcode.hardcorehabitat.Misc.ServerPlayerEntityExtension;
 import com.connorcode.hardcorehabitat.Util;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.packet.s2c.play.PlayerListHeaderS2CPacket;
 import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket;
@@ -66,8 +68,10 @@ public abstract class ServerPlayerEntityMixin implements ServerPlayerEntityExten
         else setLives(this, 7);
     }
 
-    @Inject(method = "onDeath", at = @At("HEAD"))
+    @Inject(method = "onDeath", at = @At("TAIL"))
     public void onDeath(DamageSource damageSource, CallbackInfo ci) {
+        Thread.dumpStack();
+
         ServerPlayerEntity self = ((ServerPlayerEntity) (Object) this);
         int lives = getLives(this);
 

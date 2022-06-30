@@ -25,6 +25,7 @@ public class DamageTrackerMixin {
         int lives = HardcoreHabitat.lives.get(entity.getUuid());
         if (lives < 1) return;
 
-        cir.setReturnValue(Text.of(String.format("%s, %d remaining lives", cir.getReturnValue().getString(), lives)));
+        cir.setReturnValue(Text.of(String.format("%s, %d remaining %s", cir.getReturnValue().getString(), lives,
+                lives == 1 ? "life" : "lives")));
     }
 }

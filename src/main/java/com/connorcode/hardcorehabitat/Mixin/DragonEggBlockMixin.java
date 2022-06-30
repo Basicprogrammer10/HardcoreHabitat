@@ -6,6 +6,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.DragonEggBlock;
+import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
@@ -58,6 +59,7 @@ public class DragonEggBlockMixin {
         for (ServerPlayerEntity i : HardcoreHabitat.playerManager.getPlayerList()) {
             i.networkHandler.sendPacket(new PlayerListS2CPacket(PlayerListS2CPacket.Action.UPDATE_DISPLAY_NAME, i));
             i.sendMessage(Text.of(Util.genLiveCountText(7)), true);
+            Objects.requireNonNull(i.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH)).setBaseValue(6f);
             i.setHealth(6f);
         }
 
