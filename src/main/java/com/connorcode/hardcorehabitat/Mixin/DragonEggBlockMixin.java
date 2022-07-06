@@ -59,7 +59,8 @@ public class DragonEggBlockMixin {
         for (ServerPlayerEntity i : HardcoreHabitat.playerManager.getPlayerList()) {
             i.networkHandler.sendPacket(new PlayerListS2CPacket(PlayerListS2CPacket.Action.UPDATE_DISPLAY_NAME, i));
             i.sendMessage(Text.of(Util.genLiveCountText(7)), true);
-            Objects.requireNonNull(i.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH)).setBaseValue(6f);
+            Objects.requireNonNull(i.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH))
+                    .setBaseValue(6f);
             i.setHealth(6f);
         }
 
@@ -67,14 +68,18 @@ public class DragonEggBlockMixin {
         HardcoreHabitat.playerManager.saveAllPlayerData();
 
         // Reset lives of offline players
-        Path worldFolder = FabricLoader.getInstance().getGameDir().resolve(HardcoreHabitat.properties.levelName);
+        Path worldFolder = FabricLoader.getInstance()
+                .getGameDir()
+                .resolve(HardcoreHabitat.properties.levelName);
         File playerDataDir = new File(worldFolder + File.separator + WorldSavePath.PLAYERDATA);
         for (File i : Objects.requireNonNull(playerDataDir.listFiles())) {
             // Continue if not dat file
-            if (!i.getName().endsWith(".dat")) continue;
+            if (!i.getName()
+                    .endsWith(".dat")) continue;
 
             // Continue if player is online
-            UUID fileUuid = UUID.fromString(i.getName().split("\\.")[0]);
+            UUID fileUuid = UUID.fromString(i.getName()
+                    .split("\\.")[0]);
             if (HardcoreHabitat.lives.containsKey(fileUuid)) continue;
 
             // Load and edit player-data

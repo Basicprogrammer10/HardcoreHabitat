@@ -14,16 +14,20 @@ import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 public class LivesCommand {
     public static int run(CommandContext<ServerCommandSource> ctx) {
         String rawPlayer = getString(ctx, "player");
-        if (Arrays.stream(Commands.players()).noneMatch(x -> Objects.equals(x, rawPlayer))) {
-            ctx.getSource().sendError(Text.of("Invalid Player"));
+        if (Arrays.stream(Commands.players())
+                .noneMatch(x -> Objects.equals(x, rawPlayer))) {
+            ctx.getSource()
+                    .sendError(Text.of("Invalid Player"));
             return 0;
         }
 
         ServerPlayerEntity player = Objects.requireNonNull(HardcoreHabitat.playerManager.getPlayer(rawPlayer));
         int lives = HardcoreHabitat.lives.get(player.getUuid());
 
-        Objects.requireNonNull(ctx.getSource().getPlayer())
-                .sendMessage(Text.of(String.format("%s has %d remaining lives", player.getName().getString(), lives)));
+        Objects.requireNonNull(ctx.getSource()
+                        .getPlayer())
+                .sendMessage(Text.of(String.format("%s has %d remaining lives", player.getName()
+                        .getString(), lives)));
         return 0;
     }
 }

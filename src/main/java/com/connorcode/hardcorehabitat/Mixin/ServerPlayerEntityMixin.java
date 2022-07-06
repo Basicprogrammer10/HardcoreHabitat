@@ -4,6 +4,7 @@ import com.connorcode.hardcorehabitat.HardcoreHabitat;
 import com.connorcode.hardcorehabitat.Misc.Runner;
 import com.connorcode.hardcorehabitat.Misc.ServerPlayerEntityExtension;
 import com.connorcode.hardcorehabitat.Util;
+import com.mojang.logging.LogUtils;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.nbt.NbtCompound;
@@ -27,14 +28,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.logging.Logger;
 
 @Mixin(ServerPlayerEntity.class)
 public abstract class ServerPlayerEntityMixin implements ServerPlayerEntityExtension {
-    @Shadow
-    @Final
-    private static Logger LOGGER;
-
     @Shadow
     @Final
     public MinecraftServer server;
@@ -82,9 +78,12 @@ public abstract class ServerPlayerEntityMixin implements ServerPlayerEntityExten
         if (lives > 0) {
             lives--;
             setLives(this, lives);
-            LOGGER.info(String.format("%s is down to %d lives", self.getName().getString(), lives));
+            LogUtils.getLogger()
+                    .info(String.format("%s is down to %d lives", self.getName()
+                            .getString(), lives));
 
-            for (ServerPlayerEntity i : self.server.getPlayerManager().getPlayerList())
+            for (ServerPlayerEntity i : self.server.getPlayerManager()
+                    .getPlayerList())
                 i.networkHandler.sendPacket(
                         new PlayerListS2CPacket(PlayerListS2CPacket.Action.UPDATE_DISPLAY_NAME, self));
 
@@ -94,9 +93,11 @@ public abstract class ServerPlayerEntityMixin implements ServerPlayerEntityExten
             return;
         }
 
-        LOGGER.info("The season has ended");
+        LogUtils.getLogger()
+                .info("The season has ended");
         HardcoreHabitat.seasonRunning = false;
-        for (ServerPlayerEntity i : self.server.getPlayerManager().getPlayerList()) {
+        for (ServerPlayerEntity i : self.server.getPlayerManager()
+                .getPlayerList()) {
             i.changeGameMode(GameMode.SPECTATOR);
             if (i != self) i.networkHandler.sendPacket(new TitleS2CPacket(Text.of("§cSeason Over")));
             i.sendMessage(Text.of("§cSeason over"));
@@ -111,16 +112,22 @@ public abstract class ServerPlayerEntityMixin implements ServerPlayerEntityExten
         ServerPlayerEntity self = ((ServerPlayerEntity) (Object) this);
 
         // Make player list header
-        int maxPlayerName = Arrays.stream(Objects.requireNonNull(self.getServer()).getPlayerNames()).map(String::length)
-                .max(Integer::compareTo).orElse(0);
+        int maxPlayerName = Arrays.stream(Objects.requireNonNull(self.getServer())
+                        .getPlayerNames())
+                .map(String::length)
+                .max(Integer::compareTo)
+                .orElse(0);
         String spaces = " ".repeat(Math.round((Math.max(0, (12 - maxPlayerName)) / 2f)));
-        for (ServerPlayerEntity i : self.getServer().getPlayerManager().getPlayerList())
+        for (ServerPlayerEntity i : self.getServer()
+                .getPlayerManager()
+                .getPlayerList())
             i.networkHandler.sendPacket(
                     new PlayerListHeaderS2CPacket(Text.of(String.format("\n%s §nJSC-Hardcore§r %s\n", spaces, spaces)),
                             Text.empty()));
 
         // If player is new, Send a welcome message
-        PlayerManager playerManager = Objects.requireNonNull(self.getServer()).getPlayerManager();
+        PlayerManager playerManager = Objects.requireNonNull(self.getServer())
+                .getPlayerManager();
         if (HardcoreHabitat.seasonRunning && playerManager.loadPlayerData(
                 self) == null && !HardcoreHabitat.joinedPlayersCache.contains(self.getUuid())) {
             if (!HardcoreHabitat.lives.containsKey(self.getUuid())) HardcoreHabitat.lives.put(self.getUuid(), 7);
