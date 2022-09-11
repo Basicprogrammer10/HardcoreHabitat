@@ -10,6 +10,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
 import java.util.Random;
@@ -20,7 +21,7 @@ public class ServerMetadataMixin {
     private static final List<String> motds = new BufferedReader(new InputStreamReader(Objects.requireNonNull(
             Thread.currentThread()
                     .getContextClassLoader()
-                    .getResourceAsStream("motds.txt")))).lines()
+                    .getResourceAsStream("motds.txt")), StandardCharsets.UTF_8)).lines()
             .toList();
 
 

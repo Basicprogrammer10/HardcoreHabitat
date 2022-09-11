@@ -35,9 +35,6 @@ public abstract class ServerPlayerEntityMixin implements ServerPlayerEntityExten
     @Final
     public MinecraftServer server;
 
-    @Shadow
-    public abstract void sendMessage(Text message);
-
     @Override
     public int getLives() {
         return getLives(this);
@@ -67,43 +64,44 @@ public abstract class ServerPlayerEntityMixin implements ServerPlayerEntityExten
         else setLives(this, 7);
     }
 
-    @Inject(method = "onDeath", at = @At("HEAD"))
+    @Inject(method = "onDeath", at = @At("TAIL"))
     public void onDeath(DamageSource damageSource, CallbackInfo ci) {
         ServerPlayerEntity self = ((ServerPlayerEntity) (Object) this);
-        int lives = getLives(this);
 
         if (!HardcoreHabitat.playerRespawnMessageQueue.containsKey(self.getUuid()))
             HardcoreHabitat.playerRespawnMessageQueue.put(self.getUuid(), new ArrayList<>());
 
-        if (lives > 0) {
-            lives--;
-            setLives(this, lives);
+        ArrayList<Runner> playerRespawnQueue = HardcoreHabitat.playerRespawnMessageQueue.get(self.getUuid());
+        playerRespawnQueue.add(() -> {
+            int lives = getLives(this);
+            if (lives > 0) {
+                lives--;
+                setLives(this, lives);
+                LogUtils.getLogger()
+                        .info(String.format("%s is down to %d lives", self.getName()
+                                .getString(), lives));
+
+                for (ServerPlayerEntity i : self.server.getPlayerManager()
+                        .getPlayerList())
+                    i.networkHandler.sendPacket(
+                            new PlayerListS2CPacket(PlayerListS2CPacket.Action.UPDATE_DISPLAY_NAME, self));
+
+                self.sendMessage(Text.of(Util.genLiveCountText(lives)), true);
+                return;
+            }
+
             LogUtils.getLogger()
-                    .info(String.format("%s is down to %d lives", self.getName()
-                            .getString(), lives));
-
+                    .info("The season has ended");
+            HardcoreHabitat.seasonRunning = false;
             for (ServerPlayerEntity i : self.server.getPlayerManager()
-                    .getPlayerList())
-                i.networkHandler.sendPacket(
-                        new PlayerListS2CPacket(PlayerListS2CPacket.Action.UPDATE_DISPLAY_NAME, self));
-
-            int finalLives = lives;
-            ArrayList<Runner> playerRespawnQueue = HardcoreHabitat.playerRespawnMessageQueue.get(self.getUuid());
-            playerRespawnQueue.add(() -> self.sendMessage(Text.of(Util.genLiveCountText(finalLives)), true));
-            return;
-        }
-
-        LogUtils.getLogger()
-                .info("The season has ended");
-        HardcoreHabitat.seasonRunning = false;
-        for (ServerPlayerEntity i : self.server.getPlayerManager()
-                .getPlayerList()) {
-            i.changeGameMode(GameMode.SPECTATOR);
-            if (i != self) i.networkHandler.sendPacket(new TitleS2CPacket(Text.of("§cSeason Over")));
-            i.sendMessage(Text.of("§cSeason over"));
-        }
-        HardcoreHabitat.playerRespawnMessageQueue.get(self.getUuid())
-                .add(() -> self.networkHandler.sendPacket(new TitleS2CPacket(Text.of("§cSeason Over"))));
+                    .getPlayerList()) {
+                i.changeGameMode(GameMode.SPECTATOR);
+                if (i != self) i.networkHandler.sendPacket(new TitleS2CPacket(Text.of("§cSeason Over")));
+                i.sendMessage(Text.of("§cSeason over"));
+            }
+            HardcoreHabitat.playerRespawnMessageQueue.get(self.getUuid())
+                    .add(() -> self.networkHandler.sendPacket(new TitleS2CPacket(Text.of("§cSeason Over"))));
+        });
     }
 
 
